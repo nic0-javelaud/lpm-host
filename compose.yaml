@@ -1,0 +1,139 @@
+version: '3.8'
+
+services:
+  # Cloudflare Tunnel
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared
+    restart: unless-stopped
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    command: tunnel --no-autoupdate run
+    networks:
+      - app-network
+
+  # Plausible Analytics
+  plausible-db:
+    image: postgres:14-alpine
+    container_name: plausible-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${PLUSABLE_DB_PASSWORD:-plausible}
+      POSTGRES_USER: ${PLUSABLE_DB_USER:-plausible}
+      POSTGRES_DB: ${PLUSABLE_DB_NAME:-plausible_db}
+    volumes:
+      - plausible-db-data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  plausible-events-db:
+    image: clickhouse/clickhouse-server:23.3.7.5-alpine
+    container_name: plausible-events-db
+    restart: unless-stopped
+    volumes:
+      - plausible-events-data:/var/lib/clickhouse
+    networks:
+      - app-network
+
+  plausible:
+    image: plausible/analytics:v2.0
+    container_name: plausible
+    restart: unless-stopped
+    depends_on:
+      - plausible-db
+      - plausible-events-db
+    environment:
+      BASE_URL: ${PLUSABLE_BASE_URL:-http://localhost:8000}
+      DATABASE_URL: postgres://${PLUSABLE_DB_USER:-plausible}:${PLUSABLE_DB_PASSWORD:-plausible}@plausible-db:5432/${PLUSABLE_DB_NAME:-plausible_db}
+      CLICKHOUSE_DATABASE_URL: http://plausible-events-db:8123/plausible_events
+      SECRET_KEY_BASE: ${PLUSABLE_SECRET_KEY_BASE:-thisisasecretkeyforplausible}
+    ports:
+      - "8000:8000"
+    networks:
+      - app-network
+
+  # Temporal Server (based on existing config)
+  temporal-postgresql:
+    image: postgres:14-alpine
+    container_name: temporal-postgresql
+    environment:
+      POSTGRES_PASSWORD: temporal
+      POSTGRES_USER: temporal
+    volumes:
+      - temporal-postgres-data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  temporal-elasticsearch:
+    image: elasticsearch:7.17.10
+    container_name: temporal-elasticsearch
+    environment:
+      - cluster.routing.allocation.disk.threshold_enabled=true
+      - cluster.routing.allocation.disk.watermark.low=512mb
+      - cluster.routing.allocation.disk.watermark.high=256mb
+      - cluster.routing.allocation.disk.watermark.flood_stage=128mb
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms256m -Xmx256m
+      - xpack.security.enabled=false
+    volumes:
+      - temporal-es-data:/var/lib/elasticsearch/data
+    networks:
+      - app-network
+
+  temporal:
+    image: temporalio/auto-setup:1.20.1
+    container_name: temporal
+    depends_on:
+      - temporal-postgresql
+      - temporal-elasticsearch
+    environment:
+      - DB=postgres12
+      - DB_PORT=5432
+      - POSTGRES_USER=temporal
+      - POSTGRES_PWD=temporal
+      - POSTGRES_SEEDS=temporal-postgresql
+      - ENABLE_ES=true
+      - ES_SEEDS=temporal-elasticsearch
+      - ES_VERSION=v7
+    ports:
+      - "7233:7233"
+    networks:
+      - app-network
+
+  temporal-ui:
+    image: temporalio/ui:2.10.0
+    container_name: temporal-ui
+    depends_on:
+      - temporal
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CORS_ORIGINS=http://localhost:3000
+    ports:
+      - "8080:8080"
+    networks:
+      - app-network
+
+  # Custom FastAPI Service
+  # fastapi-service:
+  #   build:
+  #     context: ./simple-mcp-demo
+  #     dockerfile: Dockerfile
+  #   container_name: fastapi-service
+  #   environment:
+  #     - MISTRAL_API_KEY=${MISTRAL_API_KEY:-your-mistral-api-key}
+  #   ports:
+  #     - "8001:8080"
+  #   networks:
+  #     - app-network
+  #   depends_on:
+  #     - temporal
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  plausible-db-data:
+  plausible-events-data:
+  temporal-postgres-data:
+  temporal-es-data:
