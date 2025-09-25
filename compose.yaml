@@ -18,9 +18,9 @@ services:
     container_name: plausible-db
     restart: unless-stopped
     environment:
-      POSTGRES_PASSWORD: ${PLAUSIBLE_DB_PASSWORD:-plausible}
-      POSTGRES_USER: ${PLAUSIBLE_DB_USER:-plausible}
-      POSTGRES_DB: ${PLAUSIBLE_DB_NAME:-plausible_db}
+      POSTGRES_PASSWORD: ${PLAUSIBLE_DB_PASSWORD}
+      POSTGRES_USER: ${PLAUSIBLE_DB_USER}
+      POSTGRES_DB: ${PLAUSIBLE_DB_NAME}
     volumes:
       - plausible-db-data:/var/lib/postgresql/data
     networks:
@@ -44,9 +44,9 @@ services:
       - plausible-events-db
     environment:
       BASE_URL: ${PLAUSIBLE_BASE_URL:-http://localhost:8000}
-      DATABASE_URL: postgres://${PLAUSIBLE_DB_USER:-plausible}:${PLAUSIBLE_DB_PASSWORD:-plausible}@plausible-db:5432/${PLAUSIBLE_DB_NAME:-plausible_db}
+      DATABASE_URL: postgres://${PLAUSIBLE_DB_USER}:${PLAUSIBLE_DB_PASSWORD}@plausible-db:5432/${PLAUSIBLE_DB_NAME}
       CLICKHOUSE_DATABASE_URL: http://plausible-events-db:8123/plausible_events
-      SECRET_KEY_BASE: ${PLAUSIBLE_SECRET_KEY_BASE:-thisisasecretkeyforplausible}
+      SECRET_KEY_BASE: ${PLAUSIBLE_SECRET_KEY_BASE}
     ports:
       - "8000:8000"
     networks:
