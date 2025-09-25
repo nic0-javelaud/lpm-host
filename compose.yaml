@@ -64,6 +64,8 @@ services:
       - SECRET_KEY_BASE=${PLAUSIBLE_SECRET_KEY_BASE}
       - DATABASE_URL=postgres://postgres:postgres@plausible_db:5432/plausible_db
       - CLICKHOUSE_DATABASE_URL=http://plausible_events_db:8123/plausible_events_db
+      - HTTP_PORT=80
+      - HTTPS_PORT=443
 
   # Temporal Server (based on existing config)
   temporal-postgresql:
