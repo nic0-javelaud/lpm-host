@@ -44,7 +44,7 @@ services:
       start_period: 1m
 
   plausible:
-    image: ghcr.io/plausible/community-edition:v3.0.1
+    image: ghcr.io/plausible/community-edition:latest
     restart: always
     command: sh -c "/entrypoint.sh db createdb && /entrypoint.sh db migrate && /entrypoint.sh run"
     depends_on:
@@ -80,7 +80,7 @@ services:
       - app-network
 
   temporal-elasticsearch:
-    image: elasticsearch:7.17.10
+    image: elasticsearch:latest
     container_name: temporal-elasticsearch
     environment:
       - cluster.routing.allocation.disk.threshold_enabled=true
@@ -96,7 +96,7 @@ services:
       - app-network
 
   temporal:
-    image: temporalio/auto-setup:1.20.1
+    image: temporalio/auto-setup:latest
     container_name: temporal
     depends_on:
       - temporal-postgresql
@@ -116,7 +116,7 @@ services:
       - app-network
 
   temporal-ui:
-    image: temporalio/ui:2.10.0
+    image: temporalio/ui:latest
     container_name: temporal-ui
     depends_on:
       - temporal
