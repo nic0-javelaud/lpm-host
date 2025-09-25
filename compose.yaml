@@ -80,7 +80,7 @@ services:
       - app-network
 
   temporal-elasticsearch:
-    image: elasticsearch:latest
+    image: elasticsearch:9.0.7
     container_name: temporal-elasticsearch
     environment:
       - cluster.routing.allocation.disk.threshold_enabled=true
